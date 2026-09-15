@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="엑셀 센서 데이터를 브라우저에서만 분석하는 로컬 대시보드">
+  <title>LocalPulse · 센서 분석 대시보드</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23090d18'/%3E%3Cpath d='M5 18h5l2-8 4 15 3-11 2 4h6' fill='none' stroke='%235ee6c4' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#overview" aria-label="LocalPulse 홈">
+        <span class="brand-mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 18h6l2-8 4 15 3-11 2 4h7"/></svg></span>
+        <span><strong>LocalPulse</strong><small>Sensor intelligence</small></span>
+      </a>
+
+      <div class="local-badge"><span></span> 로컬 연산 모드</div>
+
+      <label class="file-drop" id="dropZone" for="fileInput">
+        <input id="fileInput" type="file" accept=".xlsx,.xlsm" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>
+        <strong>엑셀 파일 불러오기</strong>
+        <span>클릭하거나 여기에 놓으세요</span>
+      </label>
+
+      <div class="source-card">
+        <span class="eyebrow">현재 데이터</span>
+        <strong id="sourceName">센서 스무딩.xlsx</strong>
+        <span id="sourceMeta">센서_시계열 · 1,440행</span>
+      </div>
+
+      <nav aria-label="대시보드 메뉴">
+        <a class="active" href="#overview"><span>01</span> 개요</a>
+        <a href="#trend"><span>02</span> 추세 분석</a>
+        <a href="#relations"><span>03</span> 관계 분석</a>
+        <a href="#records"><span>04</span> 원본 기록</a>
+      </nav>
+
+      <div class="privacy-note">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 10V7a4 4 0 0 1 8 0v3m-9 0h10v9H7z"/></svg>
+        <div><strong>외부 전송 없음</strong><span>파일은 브라우저 메모리에서만 처리됩니다.</span></div>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar" id="overview">
+        <div>
+          <span class="eyebrow">OPERATIONAL SIGNALS / 24H</span>
+          <h1>센서 상태 한눈에 보기</h1>
+          <p id="periodText">2026. 08. 01 00:00 — 23:59 · 1분 간격</p>
+        </div>
+        <div class="range-switch" aria-label="시간 범위">
+          <button data-hours="6">6시간</button><button data-hours="12">12시간</button><button class="active" data-hours="24">전체</button>
+        </div>
+      </header>
+
+      <section class="kpi-grid" aria-label="핵심 지표">
+        <article class="kpi"><div class="kpi-head"><span>평균 온도</span><i class="mint"></i></div><strong id="avgTemp">—</strong><small id="tempRange">범위 —</small></article>
+        <article class="kpi"><div class="kpi-head"><span>참값 RMSE</span><i class="blue"></i></div><strong id="rmse">—</strong><small>낮을수록 참값에 근접</small></article>
+        <article class="kpi"><div class="kpi-head"><span>평균 진동</span><i class="amber"></i></div><strong id="avgVib">—</strong><small id="vibPeak">최대 —</small></article>
+        <article class="kpi alert-kpi"><div class="kpi-head"><span>이상 이벤트</span><i class="coral"></i></div><strong id="eventCount">—</strong><small id="eventRate">전체 관측치의 —</small></article>
+      </section>
+
+      <section class="dashboard-grid primary-grid" id="trend">
+        <article class="panel chart-panel">
+          <div class="panel-head">
+            <div><span class="eyebrow">TEMPERATURE SIGNAL</span><h2>온도 추세와 스무딩</h2></div>
+            <label class="select-wrap">이동평균
+              <select id="smoothWindow"><option value="5">5분</option><option value="15" selected>15분</option><option value="30">30분</option><option value="60">60분</option></select>
+            </label>
+          </div>
+          <div class="legend" id="tempLegend">
+            <button data-series="raw"><i style="--c:#6e7f9d"></i>원시값</button>
+            <button data-series="smooth"><i style="--c:#5ee6c4"></i>이동평균</button>
+            <button data-series="reference"><i style="--c:#7da2ff"></i>참값</button>
+          </div>
+          <div class="chart-wrap"><svg id="tempChart" role="img" aria-label="시간별 온도 차트"></svg><div class="chart-tooltip" id="chartTooltip"></div></div>
+        </article>
+
+        <article class="panel insight-panel">
+          <div class="panel-head"><div><span class="eyebrow">AUTO DIAGNOSIS</span><h2>자동 진단</h2></div><span class="pulse"><i></i> 분석 완료</span></div>
+          <div class="score-ring" id="scoreRing"><div><strong id="qualityScore">—</strong><span>신호 품질</span></div></div>
+          <div class="insight-list" id="insightList"></div>
+        </article>
+      </section>
+
+      <section class="dashboard-grid secondary-grid" id="relations">
+        <article class="panel">
+          <div class="panel-head"><div><span class="eyebrow">NORMALIZED COMPARISON</span><h2>다변량 동조 패턴</h2></div><span class="panel-note">Z-score 기준</span></div>
+          <div class="legend"><span><i style="--c:#5ee6c4"></i>온도</span><span><i style="--c:#ffbd68"></i>진동</span><span><i style="--c:#7da2ff"></i>압력</span></div>
+          <div class="chart-wrap small"><svg id="multiChart" role="img" aria-label="정규화된 센서 비교 차트"></svg></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><span class="eyebrow">EVENT MIX</span><h2>이벤트 분포</h2></div><span class="panel-note" id="normalRate">— 정상</span></div>
+          <div id="eventBars" class="event-bars"></div>
+        </article>
+      </section>
+
+      <section class="panel records-panel" id="records">
+        <div class="panel-head">
+          <div><span class="eyebrow">DATA INSPECTOR</span><h2>원본 기록</h2></div>
+          <label class="search-box"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg><input id="recordSearch" type="search" placeholder="이벤트 또는 값 검색" aria-label="원본 기록 검색"></label>
+        </div>
+        <div class="table-wrap"><table><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table></div>
+        <div class="table-foot"><span id="tableStatus">—</span><div><button id="prevPage" aria-label="이전 페이지">←</button><span id="pageLabel">1 / 1</span><button id="nextPage" aria-label="다음 페이지">→</button></div></div>
+      </section>
+      <footer>LOCALPULSE <span>·</span> 데이터는 이 기기를 벗어나지 않습니다.</footer>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="seed-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
